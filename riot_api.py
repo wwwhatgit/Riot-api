@@ -1,5 +1,6 @@
 
 import os
+from pickle import TRUE
 os.chdir('C:\\Users\\wwwha\\OneDrive\\Desktop\\ucsb\\Pstat 131\\hw1\\Riot-api')
 # import the library for riot api
 from riotwatcher import LolWatcher, ApiError
@@ -61,7 +62,25 @@ for i in range(len(temp)):
     if(temp[i]['summonerName']=='UnsungSoul'):
         [temp[i].get(k) for k in key_value]
 
+a =watcher.match.by_id('AMERICAS','NA1_4266324078')
 
+# use dataframe from pandas  updated
+mydf = pd.DataFrame(a)
+# get game info 
+mydf['info']['participants']
+
+# set game info into variable 
+game_info = pd.DataFrame(mydf['info']['participants'])
+test_gameinfo = game_info[game_info.summonerName =='UnsungSoul']
+test_gameinfo.append(game_info[game_info.summonerName =='VoidBBlade'],ignore_index=True)
+
+pd.read_json(a,orient='columns')
+
+
+from pathlib import Path  
+filepath = Path('C:/Users/wwwha/OneDrive/Desktop/ucsb/Pstat 131/hw1/Riot-api/out1.csv')  
+filepath.parent.mkdir(parents=True, exist_ok=True) 
+pd.DataFrame(mydf['info']['participants']).to_csv(filepath)
 
 # check the type of returned frame
 type(test)
