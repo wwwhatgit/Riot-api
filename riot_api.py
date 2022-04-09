@@ -1,6 +1,11 @@
 
 import os
 from pickle import TRUE
+
+# pc at school
+# os.chdir('C:\\Users\\wwwha\\OneDrive\\Desktop\\ucsb\\Pstat 131\\hw1\\Riot-api')
+
+# pc at home
 os.chdir('C:\\Users\\Karl\\Desktop\\UCSB\\Spring22\\riot\\riot-api')
 # import the library for riot api
 from riotwatcher import LolWatcher, ApiError
