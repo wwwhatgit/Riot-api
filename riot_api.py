@@ -1,13 +1,13 @@
 
 import os
 from pickle import TRUE
-os.chdir('C:\\Users\\wwwha\\OneDrive\\Desktop\\ucsb\\Pstat 131\\hw1\\Riot-api')
+os.chdir('C:\\Users\\Karl\\Desktop\\UCSB\\Spring22\\riot\\riot-api')
 # import the library for riot api
 from riotwatcher import LolWatcher, ApiError
 import pandas as pd
 import riotwatcher
 # golbal variables
-api_key = 'RGAPI-49fae1a1-02c9-4798-8aba-f7d8fbca6cec'
+api_key = 'RGAPI-dc7744ba-a83c-46d5-bed7-feac3bb046e1'
 # set the api access
 watcher = LolWatcher(api_key)
 # set region
@@ -96,3 +96,24 @@ response  = requests.get('https://na.whatismymmr.com/api/v1/summoner?name='+'Uns
 print(response.json())
 # get mmr data
 response.json()['ranked']['avg']
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
