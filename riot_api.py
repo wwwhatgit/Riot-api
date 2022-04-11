@@ -12,7 +12,7 @@ from riotwatcher import LolWatcher, ApiError
 import pandas as pd
 import riotwatcher
 # golbal variables
-api_key = 'RGAPI-dc7744ba-a83c-46d5-bed7-feac3bb046e1'
+api_key = 'RGAPI-9a0d80bc-e6fe-4184-a449-f1b9e2bcafad'
 # set the api access
 watcher = LolWatcher(api_key)
 # set region
@@ -29,7 +29,7 @@ print(me)
 
 
 # get random rank data by player name 
-test = watcher.league.entries("na1","RANKED_SOLO_5x5","DIAMOND","II",1)
+DiamondList = watcher.league.entries("na1","RANKED_SOLO_5x5","DIAMOND","II",1)
 
 # open file to write player id
 f = open("test2.txt", "a",encoding='utf-8')
@@ -43,7 +43,7 @@ f.close()
 # get puuid 
 test_puuid = watcher.summoner.by_name(my_region,'UnsungSoul')['puuid']
 
-# use puuid to get a list of games that player has played
+# use puuid to get a list of games that player has played using puuid
 watcher.match.matchlist_by_puuid('AMERICAS',
 'UmFDyJV9IIWfPwI-T3jZccdgKBet0e8KsoEFSWjEEjQUznmk4pgqJI_9fNuGyLHfPFc_3nj9GU5XXQ',
 count=10)
@@ -67,10 +67,12 @@ for i in range(len(temp)):
     if(temp[i]['summonerName']=='UnsungSoul'):
         [temp[i].get(k) for k in key_value]
 
+
 a =watcher.match.by_id('AMERICAS','NA1_4266324078')
 
 # use dataframe from pandas  updated
 mydf = pd.DataFrame(a)
+
 # get game info 
 mydf['info']['participants']
 
@@ -79,7 +81,28 @@ game_info = pd.DataFrame(mydf['info']['participants'])
 test_gameinfo = game_info[game_info.summonerName =='UnsungSoul']
 test_gameinfo.append(game_info[game_info.summonerName =='VoidBBlade'],ignore_index=True)
 
-pd.read_json(a,orient='columns')
+
+test_gameinfo.head()
+
+Diamond_puuid_list=[]
+
+for t in range(50):
+  print(t)
+  Diamond_puuid_list.append(watcher.summoner.by_name(my_region,
+  DiamondList[t]["summonerName"])["puuid"])
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 from pathlib import Path  
@@ -96,6 +119,14 @@ test[0]["summonerName"]
 # import web api library
 import requests
 import json
+
+
+def get_mmr(playername):
+  response  = requests.get('https://na.whatismymmr.com/api/v1/summoner?name='+playername)
+  return response.json()['ranked']['avg']
+
+
+
 # request data from webside 
 response  = requests.get('https://na.whatismymmr.com/api/v1/summoner?name='+'UnsungSoul')
 print(response.json())
