@@ -71,9 +71,10 @@ predictive, I am going to predict a numeric value based on my predicotrs.
 
 
 \textbf{Your proposed project timeline}
-week 3-4: Load and tidy data 
+
+week 3-4: Load and tidy data
 week 5: Run and write up descriptive analyses
-week 6-7: Run and adjust models  
+week 6-7: Run and adjust models
 week 8: write results
 week 9: Work on draft of paper
 week 10: edit paper
