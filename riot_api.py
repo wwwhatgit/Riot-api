@@ -86,10 +86,91 @@ test_gameinfo.head()
 
 Diamond_puuid_list=[]
 
-for t in range(50):
-  print(t)
-  Diamond_puuid_list.append(watcher.summoner.by_name(my_region,
-  DiamondList[t]["summonerName"])["puuid"])
+def get_puuid(list_of_summonerName):
+  list_to_return=[]
+  for t in range(len(list_of_summonerName)):
+    list_to_return.append(watcher.summoner.by_name(my_region,
+    list_of_summonerName[t]["summonerName"])["puuid"])
+  return list_to_return
+
+
+def get_game_list(puuid):
+  return watcher.match.matchlist_by_puuid('AMERICAS',puuid)
+
+def get_game_info(gameid):
+  return pd.DataFrame(watcher.match.by_id('AMERICAS',gameid))['info']
+
+
+game_list = []
+
+game_info = []
+
+participants_list = []
+
+dataset = pd.DataFrame()
+
+for i in Diamond_puuid_list:
+  for j in get_game_list(i):
+    game_list.append(j)
+
+
+for i in range(len(game_list)+999):
+  game_info.append(get_game_info(game_list[i]))
+  
+len(game_info)
+
+
+for i in game_info:
+  participants_list.append(pd.DataFrame(i['participants']))
+  
+
+  
+dataset = pd.concat(participants_list)
+
+
+oo =pd.DataFrame(dataset)
+
+filepath = Path('C:/Users/wwwha/OneDrive/Desktop/ucsb/Pstat 131/hw1/Riot-api/test.csv')  
+filepath.parent.mkdir(parents=True, exist_ok=True) 
+oo.to_csv(filepath)
+pd.DataFrame(mydf['info']['participants']).to_csv(filepath)
+
+
+
+
+
+
+
+
+
+
+
+game_info = get_game_info('NA1_4270151175')
+
+
+
+test_list = get_game_list(Diamond_puuid_list[0])
+
+test_gameinfo = get_game_info(test_list[0])
+
+test_participants = pd.DataFrame(test_gameinfo['participants'])
+test_gameinfo['participants'][1]
+type(test_participants)
+test_df=pd.DataFrame()
+
+test_df.append(test_participants)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

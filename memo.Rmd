@@ -1,10 +1,85 @@
 ---
 title: "memo"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-\textbf{An overview of your dataset}
+\textbf{An overview of dataset}
+
+\textbf{What does it include?}
+My dataset include match detail for e-sport game 'league of legends' 
+
+refrence URL: https://developer.riotgames.com/apis#match-v5/GET_getMatch
+most data under ParticipantDto block will be my dataset.
+https://na.whatismymmr.com/
+This gives me a numeric value how well each player is 
+
+\textbf{Where and how will you be obtaining it? Include the link and source.}
+
+I write a python script to directly collect my data from riot developer portal  but it  only allow 100 request for every 2 minutes, therefore my data collection is not done yet when I write this memo, it should be done in the following week.
+
+refrence URL: https://developer.riotgames.com/apis#match-v5/GET_getMatch
+https://na.whatismymmr.com/
+
+riot_api.py is the script I wrote to collect my data it is in this repo.
+
+
+\textbf{About how many observations? How many predictors?}
+There are 6 tiers will be in my dataset, they are 'Iron, Bronze, Silver, Gold, Platinum, Diamond'
+Each tiers has about 4000 observation and each observation has about 50 perdictors.
+
+
+\textbf{What types of variables will you be working with?}
+Most of my variables will be numeric. There are few categorical variables.
+
+
+\textbf{Is there any missing data? About how much? Do you have an idea for how to handle it?}
+Since I am the person collecting my data, and it is directly from riot there is no missing data.
+
+
+
+\textbf{An overview of research question(s)}
+
+\textbf{What variable(s) are you interested in predicting? What question(s) are you interested in answering?}
+
+I am interested in how to make a prediction on player's mmr (Match Making Rating) based on a game play from some random player. 
+MMR is determined by the rank you are in. I think the match up data is different in each skill level and I am trying to make a prediction on it.
+Few question that I have now:
+Will more kill/death rate brings you a higher rank?
+How much vision score effect your MMR?
+Is there a huge difference on champExperience between low tier players and high tier players.
+
+\textbf{Name your response/outcome variable(s) and briefly describe it/them.}
+
+MMR (Match Making Rating) will be my outcome.  MMR is a number used by League of Legends to represent a player’s skill level. 
+
+\textbf{Will these questions be best answered with a classification or regression approach?}
+Most of my question will be best answerd in regression approach.
+
+
+\textbf{Which predictors do you think will be especially useful?}
+The following predictors I believe will be most useful:
+deaths, deaths, assists, champExperience, champLevel, damageDealtToBuildings, longestTimeSpentLiving, wardsPlaced, wardsKilled,visionScore 
+
+\textbf{Is the goal of your model descriptive, predictive, inferential, or a combination? Explain.}
+predictive, I am going to predict a numeric value based on my predicotrs.
+
+
+\textbf{Your proposed project timeline}
+week 3-4: Load and tidy data 
+week 5: Run and write up descriptive analyses
+week 6-7: Run and adjust models  
+week 8: write results
+week 9: Work on draft of paper
+week 10: edit paper
+
+
+
+
+
+
