@@ -1,0 +1,98 @@
+---
+title: "PSTAT 131 Final Project"
+author: "Karl Ma"
+output:
+    html_document:
+      toc: true
+      toc_float: true
+      code_folding: show
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE)
+```
+## Introduction
+This project is used to create a model that can predict league of legend player's rank tires based on their performance in the game.
+
+### What is rank tires in league of legend?
+
+League of Legends has a ranking system called the League system, matching players of a similar skill level to play with and against each other. It comprises nine tiers which indicate the skill level of players. Here is how players divided into each tiers accord to League of Legend wiki Average player: Iron IV – Gold I (0–90 percentile), skilled player: Platinum IV – Diamond III(90–99.5 percentile),Elite player: Diamond II – Challenger (99.5–100 percentile).
+```{r} 
+library(vembedr)
+
+embed_youtube("qoYPoL05ois")
+
+```
+
+
+### Description of my project 
+
+In my project I collect player game play information from Gold Iv to Diamond I. I am going to create a model that can predict whether a player's performance in a game match their tier. 
+
+
+## Loading Data and Packages
+
+```{r}
+# load packages
+library(tidyverse)
+library(lubridate)
+library(tidymodels)
+library(patchwork)
+library(janitor)
+library(tidymodels)
+library(ISLR)
+library(tidyverse)
+library(glmnet)
+tidymodels_prefer()
+library(janitor)
+library(corrplot)
+library(corrr)
+library(rpart.plot)
+library(vip)
+library(randomForest)
+library(xgboost)
+```
+
+
+
+
+```{r}
+# load data
+lol <- read.csv('data/datasetForR.csv')
+lol <- lol %>% 
+  select(-X, -index)
+head(lol)
+```
+
+
+
+## Data Cleaning
+Since I collect my data directly from riot the data cleaning part is done while I collect my data. refer to datacollect.py in the file 
+
+
+
+
+## Data Split
+split the data in 70%/30%
+The training data set has 8346 observations
+The testing data set has 3579 observations.
+```{r}
+lol_split <- lol %>% 
+  initial_split(prop = 0.7, strata =Tier )
+
+lol_train <- training(lol_split)
+lol_test <- testing(lol_split)
+
+
+```
+
+## Exploratory Data Analysis
+
+This exploratory data analysis will use the training set, it has 8346 observations. Each observation represents a game that some player played.
+
+
+
+
