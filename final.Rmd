@@ -190,12 +190,7 @@ lol_folds <- vfold_cv(data = lol_train, v = 5, strata = Tier)
 ```
 
 Create recipe
-```{r}
-lol_recipe <- recipe(Tier ~ kda+dodgeSkillShotsSmallWindow+effectiveHealAndShielding+gameLength+goldPerMinute+killParticipation+laneMinionsFirst10Minutes+teamDamagePercentage+visionScorePerMinute+champLevel+goldSpent+longestTimeSpentLiving+summonerLevel+timeCCingOthers+win+individualPosition, data = lol_train) %>% 
-  step_dummy(all_nominal_predictors()) %>% 
-  step_normalize(all_predictors())
 
-```
 ```{r}
 lol_recipe <- recipe(Tier ~ ., data = lol_train) %>% 
   step_dummy(all_nominal_predictors()) %>% 
@@ -237,15 +232,7 @@ elastic_res <- tune_grid(
 
 
 ```
-```{r}
-autoplot(elastic_res)
-```
-Smaller values of penalty tend to result in higher ROC-AUC.
-now lets select the best model from this result.
-```{r}
-best_elastic_model <- select_best(elastic_res, metric = "roc_auc")
 
-```
 
 
 ### Deccision tree 
@@ -270,7 +257,6 @@ tree_tune_res <- tune_grid(
   grid = param_grid, 
   metrics = metric_set(roc_auc)
 )
-autoplot(tree_tune_res)
 
 ```
 ```{r}
@@ -299,16 +285,18 @@ forest_tune_res <- tune_grid(
   grid = forest_grid, 
   metrics = metric_set(roc_auc)
 )
-autoplot(forest_tune_res)
+
+
 save(forest_tune_res, forest_wkflow, file = "data/forest_.rda")
 ```
 
 ```{r}
-show_best(forest_tune_res, metric = "roc_auc")
 
 
 ```
 
+
+### boost tree
 ```{r}
 xgboost_spec <- boost_tree(trees = tune(),mtry=tune()) %>%
   set_engine("xgboost") %>%
@@ -332,6 +320,129 @@ xgboost_tune_res <- tune_grid(
 save(xgboost_tune_res, xgboost_wkflow, file = "data/xgboost.rda")
 
 ```
+
+## Model Analysis
+
+show the best models
+
+#### Elastic Net
+```{r}
+autoplot(elastic_res)
+show_best(elastic_res, metric = "roc_auc")%>% select(-.estimator,-.config)
+
+```
+Smaller values of penalty tend to result in higher ROC-AUC.
+now lets select the best model from this result.
+```{r}
+best_elastic_model <- select_best(elastic_res, metric = "roc_auc")
+elastic_final <- finalize_workflow(elastic_workflow, best_elastic_model)
+elastic_fit <- fit(elastic_final, data = lol_train)
+
+elastic_predicted_data <- augment(elastic_fit, new_data = lol_train) %>% 
+  select(Tier, starts_with(".pred"))
+
+elastic_predicted_data %>% roc_auc(Tier,.pred_DIAMOND,.pred_GOLD,.pred_PLATINUM)
+
+elastic_predicted_data %>% roc_curve(Tier,.pred_DIAMOND,.pred_GOLD,.pred_PLATINUM) %>% 
+  autoplot()
+
+```
+
+The auc_roc of this model is 0.6482557 
+
+### Deccision tree 
+
+```{r}
+autoplot(tree_tune_res)
+
+show_best(tree_tune_res, metric = "roc_auc")
+
+```
+
+```{r}
+
+best_tree_model <- select_best(tree_tune_res, metric = "roc_auc")
+tree_final <- finalize_workflow(class_tree_wkflow, best_tree_model)
+tree_fit <- fit(tree_final, data = lol_train)
+
+tree_predicted_data <- augment(tree_fit, new_data = lol_train) %>% 
+  select(Tier, starts_with(".pred"))
+
+tree_predicted_data %>% roc_auc(Tier,.pred_DIAMOND,.pred_GOLD,.pred_PLATINUM)
+
+tree_predicted_data %>% roc_curve(Tier,.pred_DIAMOND,.pred_GOLD,.pred_PLATINUM) %>% 
+  autoplot()
+
+```
+The auc_roc of this model is 0.7648482 
+
+
+### random forest
+
+
+```{r}
+autoplot(forest_tune_res)
+show_best(forest_tune_res, metric = "roc_auc")
+
+```
+```{r}
+best_forest_model <- select_best(forest_tune_res, metric = "roc_auc")
+forest_final <- finalize_workflow(forest_wkflow, best_forest_model)
+forest_fit <- fit(forest_final, data = lol_train)
+
+forest_predicted_data <- augment(forest_fit, new_data = lol_train) %>% 
+  select(Tier, starts_with(".pred"))
+
+forest_predicted_data %>% roc_auc(Tier,.pred_DIAMOND,.pred_GOLD,.pred_PLATINUM)
+
+forest_predicted_data %>% roc_curve(Tier,.pred_DIAMOND,.pred_GOLD,.pred_PLATINUM) %>% 
+  autoplot()
+
+```
+This model is the best has 0.9999994 but that must be overfitting.
+
+
+
+
+
+
 ```{r}
 autoplot(xgboost_tune_res)
+show_best(xgboost_tune_res, metric = "roc_auc")
 ```
+
+```{r}
+best_xgboost_model <- select_best(xgboost_tune_res, metric = "roc_auc")
+xgboost_final <- finalize_workflow(xgboost_wkflow, best_xgboost_model)
+xgboost_fit <- fit(xgboost_final, data = lol_train)
+
+xgboost_predicted_data <- augment(xgboost_fit, new_data = lol_train) %>% 
+  select(Tier, starts_with(".pred"))
+
+xgboost_predicted_data %>% roc_auc(Tier,.pred_DIAMOND,.pred_GOLD,.pred_PLATINUM)
+
+xgboost_predicted_data %>% roc_curve(Tier,.pred_DIAMOND,.pred_GOLD,.pred_PLATINUM) %>% 
+  autoplot()
+
+```
+
+This model has roc_auc value 1 I am pretty sure there is overfitting
+
+
+
+```{r}
+best_xgboost_model <- select_best(xgboost_tune_res, metric = "roc_auc")
+xgboost_final <- finalize_workflow(xgboost_wkflow, best_xgboost_model)
+xgboost_fit <- fit(xgboost_final, data = lol_train)
+
+xgboost_predicted_data <- augment(xgboost_fit, new_data = lol_test) %>% 
+  select(Tier, starts_with(".pred"))
+
+xgboost_predicted_data %>% roc_auc(Tier,.pred_DIAMOND,.pred_GOLD,.pred_PLATINUM)
+
+xgboost_predicted_data %>% roc_curve(Tier,.pred_DIAMOND,.pred_GOLD,.pred_PLATINUM) %>% 
+  autoplot()
+augment(xgboost_fit, new_data = lol_test) %>% conf_mat(truth=Tier,estimate=.pred_class)%>%autoplot(type='heatmap')
+```
+
+The final model is about 76.12% accurate. The model is best at predict Diamond player and did worst at predict Platinum player
