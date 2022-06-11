@@ -30,10 +30,22 @@ embed_youtube("qoYPoL05ois")
 
 ### Description of my project 
 
-In my project I collect player game play information from Gold Iv to Diamond I. I am going to create a model that can predict whether a player's performance in a game match their tier. 
+In my project I collect player game play information from Gold Iv to Diamond I. I am going to create a model that can predict whether a player's performance in a game match their tier. The reason I am doing this project is that one of my friend player league of legend a lot and he think he deserve a better rank tier but I think he is at his skill level, therefore I am going to make some model to tell him that he is not good enough to be a diamond player.
 
 
 ## Loading Data and Packages
+
+the code book is in the data file and here is some important variables.
+
+laneMinionsFirst10Minutes: How many minions kill in the first 10 minutes in  the game this is a important variable to distinguish Elite player vs average player. Lane minions are the most reliable gold income source therefore, elite players do not miss any of them but average player does not focus on it.
+visionScore: Another variable that distinguishes elite players from average players. This represent how much ward and deward a player did in a game, usually average player does not care vision much.
+
+gameLength: How many seconds does the game last. The average game length is about 30 minutes but higher skill level the game trend to shorter. 
+
+goldPerMinute: How much gold a player earn per minute.
+
+
+
 
 ```{r}
 # load packages
@@ -62,6 +74,7 @@ library(xgboost)
 ```{r}
 # load data
 lol <- read.csv('data/datasetForR.csv')
+
 lol <- lol %>% 
   select(-X, -index)
 head(lol)
@@ -70,15 +83,19 @@ head(lol)
 
 
 ## Data Cleaning
-Since I collect my data directly from riot the data cleaning part is done while I collect my data. refer to datacollect.py in the file 
+Since I collect my data directly from riot most of the data cleaning part is done while I collect my data. refer to datacollect.py in the file 
 
 
+select only games that been played more than 10 minutes.
+```{r}
+lol <- lol[lol$gameLength>600,]
 
+```
 
 ## Data Split
 split the data in 70%/30%
-The training data set has 8346 observations
-The testing data set has 3579 observations.
+The training data set has 8090 observations
+The testing data set has 3470 observations.
 ```{r}
 lol_split <- lol %>% 
   initial_split(prop = 0.7, strata =Tier )
@@ -91,7 +108,71 @@ lol_test <- testing(lol_split)
 
 ## Exploratory Data Analysis
 
-This exploratory data analysis will use the training set, it has 8346 observations. Each observation represents a game that some player played.
+This exploratory data analysis will use the training set, it has 8090 observations. Each observation represents a game that some player played.
+
+
+####My hypothesis is that Diamond players have more vision score accrose all positions. 
+Lets plot some graphs use vision score and group by tiers and separate by different position since each position has different jobs.
+```{r}
+p <- ggplot(lol_train, aes(visionScorePerMinute,factor(Tier)))
+p+geom_boxplot()+facet_wrap(vars(individualPosition))
+```
+As conclusion gold players has the least vision score per minute in all position, and diamond player has the highest score in all position. 
+
+
+#### The next step I am going to explor the game length in different tiers.
+This time the position does not matter so one graph is enough.
+```{r}
+
+p <- ggplot(lol_train, aes(gameLength,factor(Tier)))
+p+geom_boxplot()
+
+```
+
+As conclusion gold player has the longest game length and diamond player has the least game length. 
+
+
+#### Next lets see how well each tier player does in farming golds
+first lets look at their first 10 minutes laneing phase.
+since different position has different job in the game some position does not have to kill many minions therefore, show different position. 
+```{r}
+p <- ggplot(lol_train, aes(laneMinionsFirst10Minutes,factor(Tier)))
+p+geom_boxplot()+facet_wrap(vars(individualPosition))
+
+
+```
+again there are obvious difference between different tiers. 
+
+Then lets look at entier game gold income. 
+```{r}
+p <- ggplot(lol_train[lol_train$goldPerMinute<800,], aes(goldPerMinute,factor(Tier)))
+p+geom_boxplot()+facet_wrap(vars(individualPosition))
+
+```
+In this plot we can tell that utility position does not have much difference between tiers that because this position does not need to farm gold they have different job in the team, in the other position there is some difference between tiers.  
+
+#### Next lets look at how well each tier doing at fighting the enemy players
+
+```{r}
+p <- ggplot(lol_train[lol_train$damagePerMinute<2000,], aes(damagePerMinute,factor(Tier)))
+p+geom_boxplot()+facet_wrap(vars(individualPosition))
+
+```
+This result tells us that different position in each tier has difference performance 
+
+
+Kill participation is a variable of how often the player join his team. 
+```{r}
+p <- ggplot(lol_train[lol_train$killParticipation<1,], aes(killParticipation,factor(Tier)))
+p+geom_boxplot()+facet_wrap(vars(individualPosition))
+
+```
+This plot tells us top is about the same in all tier but other position higher skill level the kill participation is also higher.
+
+
+
+
+
 
 
 
