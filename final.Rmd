@@ -86,11 +86,19 @@ head(lol)
 Since I collect my data directly from riot most of the data cleaning part is done while I collect my data. refer to datacollect.py in the file 
 
 
-select only games that been played more than 10 minutes.
+select only games that been played more than 10 minutes. This step is to delete some variable that is not much useful. and conver some variable to factor
 ```{r}
 lol <- lol[lol$gameLength>600,]
+lol <- lol %>% 
+  select(-abilityUses, -alliedJungleMonsterKills,-completeSupportQuestInTime,
+         -dragonTakedowns,-earlyLaningPhaseGoldExpAdvantage,-enemyJungleMonsterKills,-hadAfkTeammate,-immobilizeAndKillWithAlly,-landSkillShotsEarlyGame,-laningPhaseGoldExpAdvantage, -maxCsAdvantageOnLaneOpponent,-maxLevelLeadLaneOpponent,-skillshotsDodged,-skillshotsHit,-soloKills,-soloTurretsLategame, -takedownsFirst25Minutes,-visionScoreAdvantageLaneOpponent,-wardTakedownsBefore20M,-consumablesPurchased,-sightWardsBoughtInGame,-gameEndedInEarlySurrender)
+
+lol <- lol %>% 
+  mutate(gameEndedInSurrender = factor(gameEndedInSurrender),individualPosition = factor(individualPosition),win = factor(win),Tier = factor(Tier),Div = factor(Div))
+
 
 ```
+
 
 ## Data Split
 split the data in 70%/30%
@@ -114,7 +122,7 @@ This exploratory data analysis will use the training set, it has 8090 observatio
 ####My hypothesis is that Diamond players have more vision score accrose all positions. 
 Lets plot some graphs use vision score and group by tiers and separate by different position since each position has different jobs.
 ```{r}
-p <- ggplot(lol_train, aes(visionScorePerMinute,factor(Tier)))
+p <- ggplot(lol_train, aes(visionScorePerMinute,Tier))
 p+geom_boxplot()+facet_wrap(vars(individualPosition))
 ```
 As conclusion gold players has the least vision score per minute in all position, and diamond player has the highest score in all position. 
@@ -124,7 +132,7 @@ As conclusion gold players has the least vision score per minute in all position
 This time the position does not matter so one graph is enough.
 ```{r}
 
-p <- ggplot(lol_train, aes(gameLength,factor(Tier)))
+p <- ggplot(lol_train, aes(gameLength,(Tier)))
 p+geom_boxplot()
 
 ```
@@ -136,7 +144,7 @@ As conclusion gold player has the longest game length and diamond player has the
 first lets look at their first 10 minutes laneing phase.
 since different position has different job in the game some position does not have to kill many minions therefore, show different position. 
 ```{r}
-p <- ggplot(lol_train, aes(laneMinionsFirst10Minutes,factor(Tier)))
+p <- ggplot(lol_train, aes(laneMinionsFirst10Minutes,(Tier)))
 p+geom_boxplot()+facet_wrap(vars(individualPosition))
 
 
@@ -145,7 +153,7 @@ again there are obvious difference between different tiers.
 
 Then lets look at entier game gold income. 
 ```{r}
-p <- ggplot(lol_train[lol_train$goldPerMinute<800,], aes(goldPerMinute,factor(Tier)))
+p <- ggplot(lol_train[lol_train$goldPerMinute<800,], aes(goldPerMinute,(Tier)))
 p+geom_boxplot()+facet_wrap(vars(individualPosition))
 
 ```
@@ -154,7 +162,7 @@ In this plot we can tell that utility position does not have much difference bet
 #### Next lets look at how well each tier doing at fighting the enemy players
 
 ```{r}
-p <- ggplot(lol_train[lol_train$damagePerMinute<2000,], aes(damagePerMinute,factor(Tier)))
+p <- ggplot(lol_train[lol_train$damagePerMinute<2000,], aes(damagePerMinute,(Tier)))
 p+geom_boxplot()+facet_wrap(vars(individualPosition))
 
 ```
@@ -163,7 +171,7 @@ This result tells us that different position in each tier has difference perform
 
 Kill participation is a variable of how often the player join his team. 
 ```{r}
-p <- ggplot(lol_train[lol_train$killParticipation<1,], aes(killParticipation,factor(Tier)))
+p <- ggplot(lol_train[lol_train$killParticipation<1,], aes(killParticipation,(Tier)))
 p+geom_boxplot()+facet_wrap(vars(individualPosition))
 
 ```
@@ -171,9 +179,159 @@ This plot tells us top is about the same in all tier but other position higher s
 
 
 
+## Building Models
+
+#### Recipe Building
+
+fold the data
+```{r}
+lol_folds <- vfold_cv(data = lol_train, v = 5, strata = Tier)
+
+```
+
+Create recipe
+```{r}
+lol_recipe <- recipe(Tier ~ kda+dodgeSkillShotsSmallWindow+effectiveHealAndShielding+gameLength+goldPerMinute+killParticipation+laneMinionsFirst10Minutes+teamDamagePercentage+visionScorePerMinute+champLevel+goldSpent+longestTimeSpentLiving+summonerLevel+timeCCingOthers+win+individualPosition, data = lol_train) %>% 
+  step_dummy(all_nominal_predictors()) %>% 
+  step_normalize(all_predictors())
+
+```
+```{r}
+lol_recipe <- recipe(Tier ~ ., data = lol_train) %>% 
+  step_dummy(all_nominal_predictors()) %>% 
+  step_normalize(all_predictors())
+
+```
 
 
 
+### Elastic Net Tuning
+```{r}
+elastic_net_spec <- multinom_reg(penalty = tune(), 
+                                 mixture = tune()) %>% 
+  set_mode("classification") %>% 
+  set_engine("glmnet")
+
+```
+```{r}
+elastic_workflow <- workflow() %>% 
+  add_recipe(lol_recipe) %>% 
+  add_model(elastic_net_spec)
+
+```
+
+
+```{r}
+elastic_grid <- grid_regular(penalty(range = c(-5, 5)), 
+                        mixture(range = c(0, 1)), levels = 10)
+
+```
+
+```{r}
+elastic_res <- tune_grid(
+  elastic_workflow,
+  resamples = lol_folds, 
+  grid = elastic_grid
+)
 
 
 
+```
+```{r}
+autoplot(elastic_res)
+```
+Smaller values of penalty tend to result in higher ROC-AUC.
+now lets select the best model from this result.
+```{r}
+best_elastic_model <- select_best(elastic_res, metric = "roc_auc")
+
+```
+
+
+### Deccision tree 
+
+```{r}
+tree_spec <- decision_tree() %>%
+  set_engine("rpart")
+class_tree_spec <- tree_spec %>%
+  set_mode("classification")
+
+class_tree_wkflow <- workflow() %>% 
+  add_model(class_tree_spec %>% 
+              set_args(cost_complexity = tune())) %>%
+  add_recipe(lol_recipe)
+
+
+param_grid <- grid_regular(cost_complexity(range = c(-10, -1)), levels = 10)
+
+tree_tune_res <- tune_grid(
+  class_tree_wkflow, 
+  resamples = lol_folds, 
+  grid = param_grid, 
+  metrics = metric_set(roc_auc)
+)
+autoplot(tree_tune_res)
+
+```
+```{r}
+show_best(tree_tune_res, metric = "roc_auc")
+
+```
+### random forest
+```{r}
+forest_spec <- rand_forest(mtry = .cols()) %>%
+  set_engine("ranger", importance = 'impurity') %>%
+  set_mode("classification")
+
+forest_wkflow <- workflow() %>% 
+  add_model(forest_spec %>% 
+              set_args(mtry = tune())%>% 
+              set_args(trees = tune())) %>%
+  add_recipe(lol_recipe)
+
+```
+```{r}
+forest_grid <- grid_regular(mtry(range = c(1, 50)),trees(range=c(100,200)), levels = 3)
+
+forest_tune_res <- tune_grid(
+  forest_wkflow, 
+  resamples = lol_folds, 
+  grid = forest_grid, 
+  metrics = metric_set(roc_auc)
+)
+autoplot(forest_tune_res)
+save(forest_tune_res, forest_wkflow, file = "data/forest_.rda")
+```
+
+```{r}
+show_best(forest_tune_res, metric = "roc_auc")
+
+
+```
+
+```{r}
+xgboost_spec <- boost_tree(trees = tune(),mtry=tune()) %>%
+  set_engine("xgboost") %>%
+  set_mode("classification")
+
+
+xgboost_wkflow <- workflow() %>% 
+  add_model(xgboost_spec) %>%
+  add_recipe(lol_recipe)
+
+
+xgboost_grid <- grid_regular(mtry=mtry(range(10,50)),trees(range=c(100,200)), levels = 2)
+
+xgboost_tune_res <- tune_grid(
+  xgboost_wkflow, 
+  resamples = lol_folds, 
+  grid = xgboost_grid, 
+  metrics = metric_set(roc_auc)
+)
+
+save(xgboost_tune_res, xgboost_wkflow, file = "data/xgboost.rda")
+
+```
+```{r}
+autoplot(xgboost_tune_res)
+```
