@@ -88,6 +88,7 @@ Since I collect my data directly from riot most of the data cleaning part is don
 
 select only games that been played more than 10 minutes. This step is to delete some variable that is not much useful. and conver some variable to factor
 ```{r}
+set.seed(1101)
 lol <- lol[lol$gameLength>600,]
 lol <- lol %>% 
   select(-abilityUses, -alliedJungleMonsterKills,-completeSupportQuestInTime,
@@ -105,6 +106,8 @@ split the data in 70%/30%
 The training data set has 8090 observations
 The testing data set has 3470 observations.
 ```{r}
+
+set.seed(1101)
 lol_split <- lol %>% 
   initial_split(prop = 0.7, strata =Tier )
 
@@ -185,6 +188,7 @@ This plot tells us top is about the same in all tier but other position higher s
 
 fold the data
 ```{r}
+set.seed(1101)
 lol_folds <- vfold_cv(data = lol_train, v = 5, strata = Tier)
 
 ```
@@ -192,6 +196,7 @@ lol_folds <- vfold_cv(data = lol_train, v = 5, strata = Tier)
 Create recipe
 
 ```{r}
+set.seed(1101)
 lol_recipe <- recipe(Tier ~ ., data = lol_train) %>% 
   step_dummy(all_nominal_predictors()) %>% 
   step_normalize(all_predictors())
@@ -202,6 +207,7 @@ lol_recipe <- recipe(Tier ~ ., data = lol_train) %>%
 
 ### Elastic Net Tuning
 ```{r}
+set.seed(1101)
 elastic_net_spec <- multinom_reg(penalty = tune(), 
                                  mixture = tune()) %>% 
   set_mode("classification") %>% 
@@ -209,6 +215,7 @@ elastic_net_spec <- multinom_reg(penalty = tune(),
 
 ```
 ```{r}
+set.seed(1101)
 elastic_workflow <- workflow() %>% 
   add_recipe(lol_recipe) %>% 
   add_model(elastic_net_spec)
@@ -217,12 +224,14 @@ elastic_workflow <- workflow() %>%
 
 
 ```{r}
+set.seed(1101)
 elastic_grid <- grid_regular(penalty(range = c(-5, 5)), 
                         mixture(range = c(0, 1)), levels = 10)
 
 ```
 
 ```{r}
+set.seed(1101)
 elastic_res <- tune_grid(
   elastic_workflow,
   resamples = lol_folds, 
@@ -238,6 +247,7 @@ elastic_res <- tune_grid(
 ### Deccision tree 
 
 ```{r}
+set.seed(1101)
 tree_spec <- decision_tree() %>%
   set_engine("rpart")
 class_tree_spec <- tree_spec %>%
@@ -260,11 +270,13 @@ tree_tune_res <- tune_grid(
 
 ```
 ```{r}
+set.seed(1101)
 show_best(tree_tune_res, metric = "roc_auc")
 
 ```
 ### random forest
 ```{r}
+set.seed(1101)
 forest_spec <- rand_forest(mtry = .cols()) %>%
   set_engine("ranger", importance = 'impurity') %>%
   set_mode("classification")
@@ -277,6 +289,7 @@ forest_wkflow <- workflow() %>%
 
 ```
 ```{r}
+set.seed(1101)
 forest_grid <- grid_regular(mtry(range = c(1, 50)),trees(range=c(100,200)), levels = 3)
 
 forest_tune_res <- tune_grid(
@@ -290,14 +303,11 @@ forest_tune_res <- tune_grid(
 save(forest_tune_res, forest_wkflow, file = "data/forest_.rda")
 ```
 
-```{r}
-
-
-```
 
 
 ### boost tree
 ```{r}
+set.seed(1101)
 xgboost_spec <- boost_tree(trees = tune(),mtry=tune()) %>%
   set_engine("xgboost") %>%
   set_mode("classification")
@@ -327,6 +337,7 @@ show the best models
 
 #### Elastic Net
 ```{r}
+
 autoplot(elastic_res)
 show_best(elastic_res, metric = "roc_auc")%>% select(-.estimator,-.config)
 
@@ -334,6 +345,7 @@ show_best(elastic_res, metric = "roc_auc")%>% select(-.estimator,-.config)
 Smaller values of penalty tend to result in higher ROC-AUC.
 now lets select the best model from this result.
 ```{r}
+set.seed(1101)
 best_elastic_model <- select_best(elastic_res, metric = "roc_auc")
 elastic_final <- finalize_workflow(elastic_workflow, best_elastic_model)
 elastic_fit <- fit(elastic_final, data = lol_train)
@@ -360,7 +372,7 @@ show_best(tree_tune_res, metric = "roc_auc")
 ```
 
 ```{r}
-
+set.seed(1101)
 best_tree_model <- select_best(tree_tune_res, metric = "roc_auc")
 tree_final <- finalize_workflow(class_tree_wkflow, best_tree_model)
 tree_fit <- fit(tree_final, data = lol_train)
@@ -386,6 +398,7 @@ show_best(forest_tune_res, metric = "roc_auc")
 
 ```
 ```{r}
+set.seed(1101)
 best_forest_model <- select_best(forest_tune_res, metric = "roc_auc")
 forest_final <- finalize_workflow(forest_wkflow, best_forest_model)
 forest_fit <- fit(forest_final, data = lol_train)
@@ -412,6 +425,7 @@ show_best(xgboost_tune_res, metric = "roc_auc")
 ```
 
 ```{r}
+set.seed(1101)
 best_xgboost_model <- select_best(xgboost_tune_res, metric = "roc_auc")
 xgboost_final <- finalize_workflow(xgboost_wkflow, best_xgboost_model)
 xgboost_fit <- fit(xgboost_final, data = lol_train)
@@ -431,6 +445,7 @@ This model has roc_auc value 1 I am pretty sure there is overfitting
 
 
 ```{r}
+set.seed(1101)
 best_xgboost_model <- select_best(xgboost_tune_res, metric = "roc_auc")
 xgboost_final <- finalize_workflow(xgboost_wkflow, best_xgboost_model)
 xgboost_fit <- fit(xgboost_final, data = lol_train)
